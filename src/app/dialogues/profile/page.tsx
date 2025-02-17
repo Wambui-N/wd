@@ -7,7 +7,7 @@ import { supabase } from "@/app/lib/utils/supabaseClient"; // For Supabase clien
 import { AuthGuard } from "@/app/lib/utils/authGuard";
 import { User } from "@supabase/supabase-js";
 
-export const ProfilePage = () => {
+const ProfilePage = () => {
   interface Profile {
     username: string;
   }

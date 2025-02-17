@@ -33,41 +33,49 @@ const buttonVariants = cva(
   }
 );
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+type ButtonBaseProps = {
   asChild?: boolean;
-  title?: string; // Add a title prop
-  icon?: React.ReactNode; // Optional icon prop
-  href?: string; // Optional href prop for link functionality
+  title?: string;
+  icon?: React.ReactNode;
+  className?: string;
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
+};
+
+interface ButtonAsButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonBaseProps {
+  href?: undefined;
 }
 
-const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, title, icon, href, ...props }, ref) => {
-    const Comp = asChild ? Slot : href ? "a" : "button";
+interface ButtonAsAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement>, ButtonBaseProps {
+  href: string;
+}
 
+type ButtonProps = ButtonAsButtonProps | ButtonAsAnchorProps;
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonAsButtonProps>(
+  function ButtonAsButton({ className, variant, size, asChild = false, title, icon, ...props }, ref) {
+    const Comp = asChild ? Slot : "button";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref as any} // Type adjustment for mixed ref usage
-        {...(href ? { href } : {})} // Add href if provided
+        className={cn(buttonVariants({ variant, size }), className)}
+        ref={ref}
         {...props}
       >
         <span className="relative inline-flex overflow-hidden">
-          {/* Animated title effect */}
-          <div className="translate-y-0 skew-y-0 transition duration-500 group-hover:-translate-y-[130%] group-hover:skew-y-12">
+          <span className="block transition-transform duration-500 group-hover:-translate-y-full">
             {title}
-          </div>
-          <div className="absolute translate-y-[165%] skew-y-12 transition duration-500 group-hover:translate-y-0 group-hover:skew-y-0">
+          </span>
+          <span className="absolute top-full transition-transform duration-500 group-hover:translate-y-0">
             {title}
-          </div>
-          {/* Optional icon */}
+          </span>
           {icon && <span className="ml-2">{icon}</span>}
         </span>
       </Comp>
     );
   }
-);
-Button.displayName = "Button";
+) as unknown as React.ComponentType<ButtonProps>;
+
+(Button as any).displayName = "Button";
 
 export { Button, buttonVariants };
+export type { ButtonProps };
