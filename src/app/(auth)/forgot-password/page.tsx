@@ -10,7 +10,9 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Ensure environment variables are defined
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL or Anon Key is not defined in environment variables.");
+  throw new Error(
+    "Supabase URL or Anon Key is not defined in environment variables.",
+  );
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
