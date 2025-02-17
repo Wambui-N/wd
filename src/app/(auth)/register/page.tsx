@@ -34,9 +34,10 @@ export default function RegisterPage() {
         "Registration successful! Please check your email to verify your account.",
       );
       setError("");
-      setTimeout(() => {
-        router.push("/login");
-      }, 3000);
+      // Remove the redirect to login page
+      // setTimeout(() => {
+      //   router.push("/login");
+      // }, 3000);
     } catch (err: any) {
       console.error("Registration error:", err);
       setError(err.message || "Failed to register");

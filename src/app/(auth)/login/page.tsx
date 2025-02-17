@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
       // Redirect to a protected route after successful login
-      router.push("/dashboard");
+      router.push("/dialogues");
     } catch (err: any) {
       // Handle specific Supabase errors
       if (err.message.includes("Invalid login credentials")) {
