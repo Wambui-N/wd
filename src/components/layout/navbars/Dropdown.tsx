@@ -1,6 +1,7 @@
+// components/navigation/DropDown.tsx
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
@@ -8,17 +9,15 @@ import { ArrowUpRight, ChevronDown } from "lucide-react";
 
 const navLinks = [
   { path: "/story", label: "Our Story" },
-  { path: "/knowledge-hub", label: "Knowledge Hub" },
-];
+ ];
 
-const container = {
-  hidden: { clipPath: "polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)" },
-  show: {
+const menuVariants = {
+  initial: { clipPath: "polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)" },
+  animate: {
     clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
     transition: {
       duration: 0.5,
       ease: "easeInOut",
-      delayChildren: 0.1,
       staggerChildren: 0.1,
     },
   },
@@ -28,80 +27,71 @@ const container = {
   },
 };
 
-const links = {
-  hidden: { y: -100, opacity: 0 },
-  show: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeInOut" } },
+const linkVariants = {
+  initial: { y: -20, opacity: 0 },
+  animate: { y: 0, opacity: 1, transition: { duration: 0.3 } },
 };
 
 const DropDown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  const toggleMenu = () => setIsOpen(!isOpen);
-
   return (
     <div className="relative z-50">
       <button
-        onClick={toggleMenu}
-        className="flex items-center font-medium capitalize text-black"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1 rounded-full px-3 py-2 font-medium text-black hover:bg-gray-100 transition-colors"
       >
-        <span className="px-1">{isOpen ? "Close" : "Menu"}</span>
-        <span
-          className={`material-symbols-rounded transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        >
-          <ChevronDown color="#020C12" strokeWidth={2} />
-        </span>
+        <span>{isOpen ? "Close" : "Menu"}</span>
+        <ChevronDown
+          className={`transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+          size={20}
+        />
       </button>
+
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className={`absolute right-0 mt-4 inline-block min-w-max rounded-2xl bg-black p-6 shadow-md`}
-            variants={container}
-            initial="hidden"
-            animate="show"
+            className="absolute right-0 mt-2 w-64 rounded-xl bg-black p-6 shadow-lg"
+            variants={menuVariants}
+            initial="initial"
+            animate="animate"
             exit="exit"
           >
-            {navLinks.map((link, index) => (
-              <div key={index} className="overflow-hidden p-0">
-                <motion.div
-                  className="hover:text-grey block overflow-hidden py-1 text-right text-lg font-medium capitalize text-primary"
-                  variants={links}
-                >
+            <div className="space-y-4">
+              {navLinks.map((link) => (
+                <motion.div key={link.path} variants={linkVariants} className="text-right">
                   <Link
                     href={link.path}
-                    onClick={toggleMenu}
-                    className="flex flex-row items-center justify-end"
+                    onClick={() => setIsOpen(false)}
+                    className="group flex items-center justify-end gap-2 text-lg font-medium text-white"
                   >
                     {pathname === link.path && (
-                      <span className="">
-                        <svg
-                          className="h-auto w-5 px-1"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 70 70"
-                          fill="none"
-                        >
-                          <circle
-                            cx="35" /* X-coordinate of the center */
-                            cy="35" /* Y-coordinate of the center */
-                            r="10" /* Radius of the circle */
-                            fill="#81c4ee"
-                          />
-                        </svg>
-                      </span>
+                      <div className=" rounded-full bg-blue-400" />
                     )}
-                    {link.label}
+                    <span className="group-hover:text-blue-400 transition-colors">
+                      {link.label}
+                    </span>
                   </Link>
                 </motion.div>
-              </div>
-            ))}
-            <Link
-              href="/signup"
-              className="flex flex-row gap-2 items-center justify-end py-2 text-2xl font-medium uppercase text-white"
-            >
-              Join the Community <ArrowUpRight size={32} color="#81c4ee" />
-            </Link>
+              ))}
+
+              <motion.div variants={linkVariants} className="pt-4 text-right">
+                <Link
+                  href="/authentication"
+                  onClick={() => setIsOpen(false)}
+                  className="group flex items-center justify-end gap-2 text-xl font-medium text-white"
+                >
+                  <span className="group-hover:text-blue-400 transition-colors">
+                    Join the Community
+                  </span>
+                  <ArrowUpRight
+                    className="text-blue-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
+                    size={24}
+                  />
+                </Link>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,53 +1,95 @@
 "use client";
 
-import SearchSection from "@/components/dialogues/search-section";
-import DialoguesLayout from "./layout";
+// app/dialogues/page.tsx
+import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/utils/supabaseClient";
 import SEO from "@/components/SEO";
-import DialogueNav from "@/components/layout/navbars/dialogueNav";
 import ArticleCard from "@/components/dialogues/article-card";
 import { useAuth } from "../lib/utils/authContext";
-import { AuthGuard } from "../lib/utils/authGuard";
 
 export default function Dialogues() {
-  const { user } = useAuth(); // Access user data
+  const { user } = useAuth();
+  const [dialogues, setDialogues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const fetchDialogues = useCallback(async () => {
+    setLoading(true);
+    const { data: dialoguesData, error } = await supabase
+      .from("dialogues")
+      .select(
+        "id, title, description, image_url, read_time, created_at, author_id",
+      );
+
+    if (error) {
+      console.error("Error fetching dialogues:", error.message);
+      return;
+    }
+
+    const dialoguesWithAuthors = await Promise.all(
+      dialoguesData.map(async (dialogue) => {
+        const { data: authorData, error: authorError } = await supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", dialogue.author_id)
+          .single();
+
+        return {
+          ...dialogue,
+          author: authorError
+            ? { username: "Unknown", avatar_url: "/default-avatar.png" }
+            : authorData,
+        };
+      }),
+    );
+
+    setDialogues(dialoguesWithAuthors);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchDialogues();
+  }, [fetchDialogues]);
 
   return (
-    <AuthGuard>
-      <DialoguesLayout>
-        <SEO
-          title="About Us - Your Company Name"
-          description="Learn more about our company, mission, and team."
-          canonicalUrl="https://www.yourwebsite.com/about"
-          ogTitle="About Your Company"
-          ogDescription="Discover the story behind our innovative solutions"
-          ogImage="https://www.yourwebsite.com/about-og-image.jpg"
-        />
-        <main className="mx-6 flex-1">
-          <DialogueNav />
-          <div className="flex flex-col gap-4">
-            <div className="w-full pt-24">
-              <SearchSection />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 h-full space-y-6 border-r border-muted-foreground/30 pr-4">
-                <ArticleCard
-                  author={{
-                    name: "JOSHUA WANZA",
-                    avatar: "https://github.com/shadcn.png",
-                  }}
-                  title="Parenting With Chronic Illness"
-                  description="Balancing caregiving and work felt impossible—until I discovered strategies shared by others who've been there."
-                  tags={["Caregiving", "Balance"]}
-                  readTime="6 Min Read"
-                  date="March 15"
-                  image="https://images.pexels.com/photos/1471843/pexels-photo-1471843.jpeg?auto=compress&cs=tinysrgb&w=600"
-                />
+    <main className="mx-6 flex-1">
+      <SEO
+        title="Dialogues"
+        description="Explore insightful articles and discussions."
+      />
+      <div className="flex flex-col gap-4">
+        <div className="w-full pt-24">{/* Your Search Section */}</div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-2 h-full space-y-6">
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-40 rounded-md bg-gray-300"></div>
+                <div className="mt-2 h-6 w-3/4 rounded bg-gray-200"></div>
               </div>
-              <div className="col-span-1 h-full border border-black bg-black p-5"></div>
-            </div>
+            ) : (
+              dialogues.map((dialogue) => (
+                <ArticleCard
+                  key={dialogue.id} // Ensure `id` is passed here
+                  author={{
+                    name: dialogue.author.username,
+                    avatar:
+                      dialogue.author.avatar_url ||
+                      "https://example.com/default-avatar.png",
+                  }}
+                  title={dialogue.title}
+                  description={dialogue.description}
+                  tags={["Caregiving", "Balance"]}
+                  readTime={dialogue.read_time}
+                  date={dialogue.created_at}
+                  image={dialogue.image_url}
+                  id={dialogue.id} // Pass `id` here
+                />
+              ))
+            )}
           </div>
-        </main>
-      </DialoguesLayout>
-    </AuthGuard>
+        </div>
+      </div>
+    </main>
   );
 }

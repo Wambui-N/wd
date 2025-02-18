@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Image from "next/image"
+import Link from "next/link"  // Import Link from next/link
 
 interface ArticleCardProps {
   author: {
@@ -19,6 +20,7 @@ interface ArticleCardProps {
   readTime: string
   date: string
   image: string
+  id: string  // Add the `id` field to link to the detailed page
 }
 
 export default function ArticleCard({
@@ -28,7 +30,8 @@ export default function ArticleCard({
   tags,
   readTime,
   date,
-  image
+  image,
+  id
 }: ArticleCardProps) {
   return (
     <Card className="overflow-hidden border-b border-muted-foreground/30 pb-3 shadow-none bg-transparent">
@@ -43,7 +46,12 @@ export default function ArticleCard({
             </div>
             
             <div className="space-y-2">
-              <h4 className="text-base font-semibold tracking-tight">{title}</h4>
+              {/* Wrap title with Link to make it clickable */}
+              <h4 className="text-base font-semibold tracking-tight">
+                <Link href={`/dialogues/${id}`}>
+                  <a className="text-blue-600 hover:underline">{title}</a> {/* Make the title a link */}
+                </Link>
+              </h4>
               <p className="text-foreground text-xl">{description}</p>
             </div>
           </CardHeader>
@@ -83,4 +91,3 @@ export default function ArticleCard({
     </Card>
   )
 }
-

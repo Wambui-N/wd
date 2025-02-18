@@ -1,6 +1,4 @@
 import Footer from "@/components/layout/footer";
-import HomeNav from "@/components/layout/navbars/homeNav";
-import Navbar3 from "@/components/layout/navbars/homeNav";
 import Cta from "@/components/sections/cta";
 import Hero from "@/components/sections/hero";
 import Ideals from "@/components/sections/ideals";
@@ -21,7 +19,6 @@ export default function HomePage() {
         ogImage="https://www.yourwebsite.com/about-og-image.jpg"
       />
       <main>
-        <HomeNav />
         <Hero />
         <ValueProp />
         {/* TODO: Add favourite entries */}

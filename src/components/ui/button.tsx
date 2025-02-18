@@ -1,11 +1,10 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 group overflow-hidden relative",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group relative overflow-hidden",
   {
     variants: {
       variant: {
@@ -23,7 +22,7 @@ const buttonVariants = cva(
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        icon: "h-10 w-10 p-2",
       },
     },
     defaultVariants: {
@@ -42,40 +41,90 @@ type ButtonBaseProps = {
   size?: VariantProps<typeof buttonVariants>["size"];
 };
 
-interface ButtonAsButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonBaseProps {
+interface ButtonAsButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    ButtonBaseProps {
   href?: undefined;
 }
 
-interface ButtonAsAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement>, ButtonBaseProps {
+interface ButtonAsAnchorProps
+  extends React.AnchorHTMLAttributes<HTMLAnchorElement>,
+    ButtonBaseProps {
   href: string;
 }
 
 type ButtonProps = ButtonAsButtonProps | ButtonAsAnchorProps;
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonAsButtonProps>(
-  function ButtonAsButton({ className, variant, size, asChild = false, title, icon, ...props }, ref) {
+  ({ className, variant, size, asChild = false, title, icon, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size }), className, "group")}
         ref={ref}
+        className={cn(buttonVariants({ variant, size }), className, "group")}
         {...props}
       >
-        <span className="relative inline-flex overflow-hidden">
-          <span className="block transition-transform duration-500 group-hover:-translate-y-full">
-            {title}
-          </span>
-          <span className="absolute top-full transition-transform duration-500 group-hover:translate-y-0">
-            {title}
-          </span>
-          {icon && <span className="ml-2">{icon}</span>}
-        </span>
+        <ButtonContent title={title} icon={icon} />
       </Comp>
     );
   }
-) as unknown as React.ComponentType<ButtonProps>;
+);
+
+const ButtonLink = React.forwardRef<HTMLAnchorElement, ButtonAsAnchorProps>(
+  ({ className, variant, size, asChild = false, title, icon, href, ...props }, ref) => {
+    const Comp = asChild ? Slot : "a";
+    return (
+      <Comp
+        ref={ref}
+        href={href}
+        className={cn(buttonVariants({ variant, size }), className, "group")}
+        {...props}
+      >
+        <ButtonContent title={title} icon={icon} />
+      </Comp>
+    );
+  }
+);
+
+const ButtonContent: React.FC<{ title?: string; icon?: React.ReactNode }> = ({
+  title,
+  icon,
+}) => {
+  const letters = title?.split("").map(letter => (letter === " " ? "\u00A0" : letter)) || [];
+
+  return (
+    <>
+      <span className="relative inline-flex overflow-hidden">
+        <span className="block transition-transform duration-300 ease-in-out group-hover:-translate-y-full">
+          {letters.map((letter, i) => (
+            <span
+              key={i}
+              className="inline-block tracking-tight transition-transform duration-300 ease-in-out group-hover:translate-y-full"
+              style={{ transitionDelay: `${0.02 * i}s` }}
+            >
+              {letter}
+            </span>
+          ))}
+        </span>
+        <span className="absolute top-full transition-transform duration-300 ease-in-out group-hover:translate-y-0">
+          {letters.map((letter, i) => (
+            <span
+              key={i}
+              className="inline-block tracking-tight transition-transform duration-300 ease-in-out group-hover:translate-y-0"
+              style={{ transitionDelay: `${0.02 * i}s` }}
+            >
+              {letter}
+            </span>
+          ))}
+        </span>
+      </span>
+      {icon && <span className="ml-2">{icon}</span>}
+    </>
+  );
+};
 
 (Button as any).displayName = "Button";
+(ButtonLink as any).displayName = "ButtonLink";
 
-export { Button, buttonVariants };
+export { Button, ButtonLink, buttonVariants };
 export type { ButtonProps };

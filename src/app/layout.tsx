@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "./lib/utils/authContext";
-import Navigation from "@/components/layout/navbars/navigation";
+import NavBar from "@/components/layout/navbars/navbar";
 
 const glaro = localFont({
   src: "./fonts/ZTGloraPro-Regular.ttf",
@@ -73,7 +73,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={satoshi.className}>
         <AuthProvider>
-          <Navigation />
+          <NavBar />
           {children}
         </AuthProvider>
       </body>

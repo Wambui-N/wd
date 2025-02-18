@@ -9,8 +9,9 @@ import {
 } from "react";
 import { supabase } from "./supabaseClient";
 import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Match your actual database schema
+// Enhanced type definitions
 interface Profile {
   id: number;
   user_id: string;
@@ -26,89 +27,245 @@ interface User {
   user_metadata?: Record<string, any>;
 }
 
-interface AuthContextType {
+interface AuthError {
+  message: string;
+  code?: string;
+  details?: string;
+}
+
+interface AuthState {
   user: User | null;
   profile: Profile | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
   loading: boolean;
+  error: AuthError | null;
+}
+
+interface AuthContextType extends AuthState {
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<Profile | null>;
+  signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  resetAuthError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    profile: null,
+    loading: true,
+    error: null,
+  });
   const router = useRouter();
 
-  // Fetch user profile data
+  const updateAuthState = (updates: Partial<AuthState>) => {
+    setAuthState(current => ({ ...current, ...updates }));
+  };
+
+  const resetAuthError = () => {
+    updateAuthState({ error: null });
+  };
+
+  // Enhanced profile fetching with better error handling
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
-        .maybeSingle(); // <-- Use .maybeSingle() here
+        .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("Fetched profile:", data);
-      setProfile(data);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error in fetchProfile:", error.message);
-      } else {
-        console.error("Unknown error in fetchProfile:", error);
-      }
-      setProfile(null);
+      updateAuthState({ profile: data, error: null });
+      return data;
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to fetch profile',
+        code: 'PROFILE_FETCH_ERROR'
+      };
+      updateAuthState({ error: authError, profile: null });
+      console.error("Profile fetch error:", authError);
+    }
+  };
+
+  // Enhanced username generation with retries
+  const generateUniqueUsername = async (baseUsername: string, maxAttempts = 10): Promise<string> => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const username = attempt === 0 ? baseUsername : `${baseUsername}${attempt}`;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("username", username)
+        .maybeSingle();
+      
+      if (!data && !error) return username;
+    }
+    throw new Error(`Could not generate unique username after ${maxAttempts} attempts`);
+  };
+
+  // Enhanced sign-in with better error handling
+  const signIn = async (email: string, password: string) => {
+    try {
+      updateAuthState({ loading: true, error: null });
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      
+      // Auth state change listener will handle the rest
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to sign in',
+        code: 'SIGN_IN_ERROR'
+      };
+      updateAuthState({ error: authError, loading: false });
+      throw error;
+    }
+  };
+
+  // Enhanced sign-up with transaction-like behavior
+  const signUp = async (email: string, password: string): Promise<Profile | null> => {
+    try {
+      updateAuthState({ loading: true, error: null });
+
+      // 1. Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+      if (!authData?.user?.id) throw new Error("Invalid user data received");
+
+      // 2. Generate unique username
+      const baseUsername = email.split("@")[0];
+      const username = await generateUniqueUsername(baseUsername);
+
+      // 3. Create or verify profile
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
+
+      if (existingProfile) return existingProfile;
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .insert([{
+          user_id: authData.user.id,
+          username,
+          created_at: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+
+      updateAuthState({ error: null });
+      return profile;
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to sign up',
+        code: 'SIGN_UP_ERROR',
+        details: error instanceof Error ? error.stack : undefined
+      };
+      updateAuthState({ error: authError, loading: false });
+      throw error;
+    }
+  };
+
+  // Enhanced sign-out
+  const signOut = async () => {
+    try {
+      updateAuthState({ loading: true, error: null });
+      await supabase.auth.signOut();
+      updateAuthState({ 
+        user: null, 
+        profile: null, 
+        loading: false, 
+        error: null 
+      });
+      router.push("/authentication");
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to sign out',
+        code: 'SIGN_OUT_ERROR'
+      };
+      updateAuthState({ error: authError, loading: false });
+      throw error;
+    }
+  };
+
+  // New: Profile update function
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!authState.user?.id) throw new Error("No authenticated user");
+    
+    try {
+      updateAuthState({ loading: true, error: null });
+      
+      const { error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("user_id", authState.user.id);
+
+      if (error) throw error;
+
+      await fetchProfile(authState.user.id);
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to update profile',
+        code: 'PROFILE_UPDATE_ERROR'
+      };
+      updateAuthState({ error: authError, loading: false });
+      throw error;
     }
   };
 
   useEffect(() => {
-    const getUser = async () => {
+    const initializeAuth = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUser(user);
+        // Get initial user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        
         if (user) {
+          updateAuthState({ user });
           await fetchProfile(user.id);
         }
       } catch (error) {
-        console.error("Error in getUser:", error);
+        console.error("Auth initialization error:", error);
       } finally {
-        setLoading(false);
+        updateAuthState({ loading: false });
       }
     };
 
-    getUser();
+    initializeAuth();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id);
-        setUser(session?.user || null);
+        updateAuthState({ user: session?.user || null });
 
         if (session?.user) {
           await fetchProfile(session.user.id);
-
-          // Redirect to /dialogues after successful registration or sign-in
           const currentPath = window.location.pathname;
-          if (currentPath === "/register" || currentPath === "/login") {
+          if (currentPath === "/authentication") {
             router.push("/dialogues");
           }
         } else {
-          setProfile(null);
-          // Only redirect to /register if not on the home page
+          updateAuthState({ profile: null });
           if (window.location.pathname !== "/") {
-            router.push("/register");
+            router.push("/authentication");
           }
         }
-      },
+      }
     );
 
     return () => {
@@ -116,198 +273,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [router]);
 
-  const generateUniqueUsername = async (
-    baseUsername: string,
-  ): Promise<string> => {
-    let username = baseUsername;
-    let counter = 1;
-
-    while (true) {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("username", username)
-        .maybeSingle(); // <-- Use .maybeSingle() here
-
-      if (error || !data) {
-        return username;
-      }
-
-      username = `${baseUsername}${counter}`;
-      counter++;
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error in signIn:", error.message);
-      } else {
-        console.error("Unknown error in signIn:", error);
-      }
-      throw error;
-    }
-  };
-
-  const signUp = async (email: string, password: string) => {
-    let authData = null;
-    let username = null;
-
-    try {
-      console.log("1. Starting signup process for:", email);
-
-      // Step 1: Create auth user
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      console.log("2. Auth signup response:", { data, error });
-
-      if (error) {
-        console.error("3a. Auth signup error:", {
-          message: error.message,
-          status: error.status,
-          details: (error as any).details,
-        });
-        throw error;
-      }
-
-      if (!data?.user?.id) {
-        console.error("3b. Invalid user data:", data);
-        throw new Error("Invalid user data received from auth signup");
-      }
-
-      authData = data;
-      console.log("3c. Auth signup successful. User ID:", data.user.id);
-
-      // Step 2: Generate unique username
-      const baseUsername = email.split("@")[0];
-      console.log("4. Generating username from base:", baseUsername);
-
-      try {
-        username = await generateUniqueUsername(baseUsername);
-        console.log("5. Generated unique username:", username);
-      } catch (usernameError) {
-        console.error("5a. Username generation error:", usernameError);
-        throw usernameError;
-      }
-
-      // Step 3: Create profile
-      console.log("6. Creating profile:", {
-        user_id: data.user.id,
-        username,
-      });
-
-      // First check if profile already exists
-      const { data: existingProfile, error: existingProfileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", data.user.id)
-        .maybeSingle(); // <-- Use .maybeSingle() here
-
-      if (existingProfileError) {
-        console.error("7a. Error checking existing profile:", existingProfileError);
-        throw existingProfileError;
-      }
-
-      if (existingProfile) {
-        console.log("7a. Profile already exists:", existingProfile);
-        return existingProfile;
-      }
-
-      // Attempt to insert the profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .insert([
-          {
-            user_id: data.user.id,
-            username,
-            created_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single(); // <-- Keep .single() here since we expect exactly one row to be inserted
-
-      if (profileError) {
-        console.error("7b. Profile creation error:", profileError);
-        throw profileError;
-      }
-
-      console.log("8. Profile created successfully:", profileData);
-
-      // Redirect to /dialogues after successful sign-up
-      router.push("/dialogues");
-      return profileData;
-    } catch (error: unknown) {
-      // Type guard for error object
-      if (error instanceof Error) {
-        console.error("Signup error details:", {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        });
-      } else if (typeof error === "object" && error !== null) {
-        // Handle Supabase error object
-        const supabaseError = error as {
-          message?: string;
-          details?: string;
-          hint?: string;
-          code?: string;
-        };
-        console.error("Supabase error details:", {
-          message: supabaseError.message,
-          details: supabaseError.details,
-          hint: supabaseError.hint,
-          code: supabaseError.code,
-        });
-      } else {
-        console.error("Unknown error type:", error);
-      }
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setProfile(null);
-      router.push("/login");
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error in signOut:", error.message);
-      } else {
-        console.error("Unknown error in signOut:", error);
-      }
-      throw error;
-    }
-  };
-
-  const value = {
-    user,
-    profile,
-    signIn,
-    signUp,
-    signOut,
-    loading,
-  };
-
-  if (loading) {
+  // Loading state
+  if (authState.loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-b-gray-900"></div>
+          <p className="text-sm text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const value: AuthContextType = {
+    ...authState,
+    signIn,
+    signUp,
+    signOut,
+    updateProfile,
+    resetAuthError,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {authState.error && (
+        <Alert variant="destructive" className="fixed top-4 right-4 w-96 z-50">
+          <AlertDescription>{authState.error.message}</AlertDescription>
+        </Alert>
+      )}
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
