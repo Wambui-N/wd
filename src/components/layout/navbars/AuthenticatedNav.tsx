@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SquarePen, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/app/lib/utils/authContext";
+import { useAuth } from "@/lib/authContext";
 
 const AuthenticatedNav = () => {
   const { profile } = useAuth();
@@ -23,8 +23,11 @@ const AuthenticatedNav = () => {
           <SquarePen className="h-4 w-4" />
         </Link>
 
-        <Link href="/dialogues/profile" className="transition-transform hover:scale-105">
-          <Avatar className="h-9 w-9 border-2 border-transparent hover:border-blue-300">
+        <Link
+          href="/dialogues/profile"
+          className="transition-transform hover:scale-105"
+        >
+          <Avatar className="h-9 w-9 border-2 border-transparent bg-orange hover:border-blue-300">
             <AvatarImage src={profile?.avatar} />
             <AvatarFallback>
               {profile?.username?.substring(0, 2).toUpperCase() || "WD"}

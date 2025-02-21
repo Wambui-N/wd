@@ -3,6 +3,11 @@
 import React, { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { AlertCircle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Alert, AlertDescription } from "../ui/alert";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
+import { Label } from "../ui/label";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,43 +37,54 @@ const SignupForm: React.FC<SignupFormProps> = ({ onLogin }) => {
   };
 
   return (
-    <form onSubmit={handleSignup} className="space-y-6">
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-red-700 flex items-center">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          {error}
-        </div>
-      )}
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Create an account</CardTitle>
+        <CardDescription>Sign up to get started with our service</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSignup} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-      <input
-        type="email"
-        required
-        placeholder="Email"
-        className="w-full p-2 border rounded"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        required
-        placeholder="Password"
-        className="w-full p-2 border rounded"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-50"
-      >
-        {loading ? "Creating account..." : "Sign up"}
-      </button>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              placeholder="Create a password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
-      <button onClick={onLogin} className="text-blue-600 hover:underline block w-full text-center">
-        Already have an account? Sign in
-      </button>
-    </form>
+          <Button type="submit" className="w-full text-black" disabled={loading || !supabase}>
+            {loading ? "Creating account..." : "Sign up"}
+          </Button>
+
+          <Button variant="link" onClick={onLogin} className="w-full text-black">
+            Already have an account? Sign in
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "../../lib/utils/authContext";
+import { useAuth } from "@/lib/authContext";
 import { useRouter } from "next/router"; // To redirect after success
-import { createPost } from "@/app/lib/utils/postUtils";
+import { createPost } from "@/lib/postUtils";
 
 const WritePage = () => {
   const { user } = useAuth(); // Get user from context
@@ -27,7 +27,7 @@ const WritePage = () => {
     setLoading(true);
 
     // Convert tags string to an array
-    const tagsArray = tags.split(",").map(tag => tag.trim());
+    const tagsArray = tags.split(",").map((tag) => tag.trim());
 
     try {
       const post = await createPost(
@@ -38,7 +38,7 @@ const WritePage = () => {
         excerpt,
         coverImage,
         tagsArray,
-        readTime
+        readTime,
       );
 
       if (post) {

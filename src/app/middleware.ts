@@ -1,14 +1,16 @@
 // app/middleware.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from "./lib/utils/supabaseClient";
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabaseClient";
 
 export async function middleware(req: NextRequest) {
   // Get the current user session
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   // If there's no session (i.e., not authenticated), redirect to login
   if (!session) {
-    return NextResponse.redirect(new URL('/auth/login', req.url));
+    return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
   // Allow the request to proceed if the user is authenticated
@@ -17,5 +19,5 @@ export async function middleware(req: NextRequest) {
 
 // Apply the middleware only to /dialogues/* routes
 export const config = {
-  matcher: ['/dialogues/*'],
+  matcher: ["/dialogues/*"],
 };

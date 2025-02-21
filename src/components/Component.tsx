@@ -1,4 +1,4 @@
-import { useAuth } from "@/app/lib/utils/authContext";
+import { useAuth } from "@/lib/authContext";
 
 const MyComponent = () => {
   const { user, profile, signIn, signUp, signOut } = useAuth();

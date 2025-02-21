@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button"; // Optional: Add buttons or form styling
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // For user avatar
-import { supabase } from "@/app/lib/utils/supabaseClient"; // For Supabase client
-import { AuthGuard } from "@/app/lib/utils/authGuard";
+import { supabase } from "@/lib/supabaseClient"; // For Supabase client
+import { AuthGuard } from "@/lib/authGuard";
 import { User } from "@supabase/supabase-js";
 
 const ProfilePage = () => {
@@ -152,4 +152,3 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
-

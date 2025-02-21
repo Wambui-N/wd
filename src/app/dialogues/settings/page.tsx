@@ -1,7 +1,7 @@
 "use client";
 
-import { AuthProvider, useAuth } from "@/app/lib/utils/authContext";
-import { AuthGuard } from "@/app/lib/utils/authGuard";
+import { AuthProvider, useAuth } from "@/lib/authContext";
+import { AuthGuard } from "@/lib/authGuard";
 
 export default function SettingsPage() {
   const { user } = useAuth(); // Access user data

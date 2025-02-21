@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { AuthProvider } from "./lib/utils/authContext";
+import { AuthProvider } from "@/lib/authContext";
 import NavBar from "@/components/layout/navbars/navbar";
 
 const glaro = localFont({

@@ -1,7 +1,7 @@
 // components/navigation/NavBar.tsx
 "use client";
 
-import { useAuth } from "@/app/lib/utils/authContext";
+import { useAuth } from "@/lib/authContext";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import AuthenticatedNav from "./AuthenticatedNav";
@@ -28,7 +28,11 @@ const NavBar = () => {
 
   return (
     <div className={navClasses}>
-      {user ? <AuthenticatedNav /> : <PublicNav />}
+      {pathname.startsWith("/authentication") ? null : user ? (
+        <AuthenticatedNav />
+      ) : (
+        <PublicNav />
+      )}
     </div>
   );
 };

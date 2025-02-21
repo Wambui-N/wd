@@ -1,5 +1,4 @@
 import SEO from "@/components/SEO";
-import HomeNav from "@/components/layout/navbars/homeNav";
 import Welcome from "@/components/sections/welcome";
 import FoundersInspo from "@/components/sections/foundersInspo";
 import WhoWeAre from "@/components/sections/whoWeAre";
@@ -18,7 +17,6 @@ export default function OurStory() {
         ogImage="https://www.yourwebsite.com/about-og-image.jpg"
       />
       <main className="">
-        <HomeNav />
 
         {/* Hero Section */}
         <section className="relative flex h-screen flex-col items-end justify-end bg-hero-bg bg-cover pb-12 pt-24 lg:h-[50vh]">
