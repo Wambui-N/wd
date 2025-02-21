@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   const updateAuthState = (updates: Partial<AuthState>) => {
-    setAuthState(current => ({ ...current, ...updates }));
+    setAuthState((current) => ({ ...current, ...updates }));
   };
 
   const resetAuthError = () => {
@@ -82,8 +82,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return data;
     } catch (error) {
       const authError = {
-        message: error instanceof Error ? error.message : 'Failed to fetch profile',
-        code: 'PROFILE_FETCH_ERROR'
+        message:
+          error instanceof Error ? error.message : "Failed to fetch profile",
+        code: "PROFILE_FETCH_ERROR",
       };
       updateAuthState({ error: authError, profile: null });
       console.error("Profile fetch error:", authError);
@@ -91,38 +92,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Enhanced username generation with retries
-  const generateUniqueUsername = async (baseUsername: string, maxAttempts = 10): Promise<string> => {
+  const generateUniqueUsername = async (
+    baseUsername: string,
+    maxAttempts = 10,
+  ): Promise<string> => {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const username = attempt === 0 ? baseUsername : `${baseUsername}${attempt}`;
-      
+      const username =
+        attempt === 0 ? baseUsername : `${baseUsername}${attempt}`;
+
       const { data, error } = await supabase
         .from("profiles")
         .select("username")
         .eq("username", username)
         .maybeSingle();
-      
+
       if (!data && !error) return username;
     }
-    throw new Error(`Could not generate unique username after ${maxAttempts} attempts`);
+    throw new Error(
+      `Could not generate unique username after ${maxAttempts} attempts`,
+    );
   };
 
   // Enhanced sign-in with better error handling
   const signIn = async (email: string, password: string) => {
     try {
       updateAuthState({ loading: true, error: null });
-      
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
-      
+
       // Auth state change listener will handle the rest
     } catch (error) {
       const authError = {
-        message: error instanceof Error ? error.message : 'Failed to sign in',
-        code: 'SIGN_IN_ERROR'
+        message: error instanceof Error ? error.message : "Failed to sign in",
+        code: "SIGN_IN_ERROR",
       };
       updateAuthState({ error: authError, loading: false });
       throw error;
@@ -130,7 +137,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Enhanced sign-up with transaction-like behavior
-  const signUp = async (email: string, password: string): Promise<Profile | null> => {
+  const signUp = async (
+    email: string,
+    password: string,
+  ): Promise<Profile | null> => {
     try {
       updateAuthState({ loading: true, error: null });
 
@@ -158,11 +168,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .insert([{
-          user_id: authData.user.id,
-          username,
-          created_at: new Date().toISOString(),
-        }])
+        .insert([
+          {
+            user_id: authData.user.id,
+            username,
+            created_at: new Date().toISOString(),
+          },
+        ])
         .select()
         .single();
 
@@ -172,9 +184,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return profile;
     } catch (error) {
       const authError = {
-        message: error instanceof Error ? error.message : 'Failed to sign up',
-        code: 'SIGN_UP_ERROR',
-        details: error instanceof Error ? error.stack : undefined
+        message: error instanceof Error ? error.message : "Failed to sign up",
+        code: "SIGN_UP_ERROR",
+        details: error instanceof Error ? error.stack : undefined,
       };
       updateAuthState({ error: authError, loading: false });
       throw error;
@@ -186,17 +198,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       updateAuthState({ loading: true, error: null });
       await supabase.auth.signOut();
-      updateAuthState({ 
-        user: null, 
-        profile: null, 
-        loading: false, 
-        error: null 
+      updateAuthState({
+        user: null,
+        profile: null,
+        loading: false,
+        error: null,
       });
       router.push("/authentication");
     } catch (error) {
       const authError = {
-        message: error instanceof Error ? error.message : 'Failed to sign out',
-        code: 'SIGN_OUT_ERROR'
+        message: error instanceof Error ? error.message : "Failed to sign out",
+        code: "SIGN_OUT_ERROR",
       };
       updateAuthState({ error: authError, loading: false });
       throw error;
@@ -206,10 +218,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // New: Profile update function
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!authState.user?.id) throw new Error("No authenticated user");
-    
+
     try {
       updateAuthState({ loading: true, error: null });
-      
+
       const { error } = await supabase
         .from("profiles")
         .update(updates)
@@ -220,8 +232,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await fetchProfile(authState.user.id);
     } catch (error) {
       const authError = {
-        message: error instanceof Error ? error.message : 'Failed to update profile',
-        code: 'PROFILE_UPDATE_ERROR'
+        message:
+          error instanceof Error ? error.message : "Failed to update profile",
+        code: "PROFILE_UPDATE_ERROR",
       };
       updateAuthState({ error: authError, loading: false });
       throw error;
@@ -232,12 +245,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeAuth = async () => {
       try {
         // Get initial user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
         if (userError) throw userError;
-        
+
+        console.log("Initial User:", user); // Debug log
+
         if (user) {
           updateAuthState({ user });
-          await fetchProfile(user.id);
+          await fetchProfile(user.id); // Fetch profile after user is found
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
@@ -249,29 +267,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        updateAuthState({ user: session?.user || null });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth State Change:", event, session); // Debug log
+      updateAuthState({ user: session?.user || null });
 
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-          const currentPath = window.location.pathname;
-          if (currentPath === "/authentication") {
-            router.push("/dialogues");
-          }
-        } else {
-          updateAuthState({ profile: null });
-          if (window.location.pathname !== "/") {
-            router.push("/authentication");
-          }
+      if (session?.user) {
+        await fetchProfile(session.user.id); // Fetch profile if user exists
+        const currentPath = window.location.pathname;
+        if (currentPath === "/authentication") {
+          // Ensure the profile username is fetched before routing
+          router.push(`/dialogues/profile/${authState.profile?.username}`); // Use `authState.profile`
+        }
+      } else {
+        updateAuthState({ profile: null });
+        if (window.location.pathname !== "/") {
+          router.push("/authentication");
         }
       }
-    );
+    });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, authState.profile]); // Add `authState.profile` as dependency
 
   // Loading state
   if (authState.loading) {
@@ -297,7 +317,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={value}>
       {authState.error && (
-        <Alert variant="destructive" className="fixed top-4 right-4 w-96 z-50">
+        <Alert variant="destructive" className="fixed right-4 top-4 z-50 w-96">
           <AlertDescription>{authState.error.message}</AlertDescription>
         </Alert>
       )}

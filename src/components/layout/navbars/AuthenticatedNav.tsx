@@ -5,8 +5,11 @@ import { SquarePen, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/authContext";
+import { supabase } from "@/lib/supabaseClient"; // Ensure you have Supabase initialized
+
 
 const AuthenticatedNav = () => {
+  
   const { profile } = useAuth();
 
   return (
@@ -24,7 +27,7 @@ const AuthenticatedNav = () => {
         </Link>
 
         <Link
-          href="/dialogues/profile"
+          href={`/dialogues/profile/${profile?.username}`} // Fixed dynamic link
           className="transition-transform hover:scale-105"
         >
           <Avatar className="h-9 w-9 border-2 border-transparent bg-orange hover:border-blue-300">

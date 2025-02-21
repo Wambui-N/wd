@@ -9,6 +9,7 @@ export default function ArticlePage() {
   const router = useRouter();
   const searchParams = useSearchParams(); // Use searchParams to get query params
   const id = searchParams.get("id"); // Get the `id` query parameter
+  console.log("Article ID:", id); // Debug log
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,11 +33,17 @@ export default function ArticlePage() {
         return;
       }
 
+      console.log("Fetched Article Data:", data); // Debug log
+
       const { data: authorData, error: authorError } = await supabase
         .from("profiles")
         .select("username, avatar_url")
         .eq("id", data.author_id)
         .single();
+
+      if (authorError) {
+        console.error("Error fetching author data:", authorError.message);
+      }
 
       setArticle({
         ...data,
